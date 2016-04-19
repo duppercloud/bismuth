@@ -60,7 +60,7 @@ var NotHasConnectedError = errors.New("never connected")
 
 func (ctx *ExecContext) Init() {
 	ctx.poolDone = make(chan bool)
-	ctx.port = 22
+	ctx.port = 2222
 	ctx.env = make(map[string]string)
 
 	onceInit.Do(func() {
@@ -426,6 +426,13 @@ func (ctx *ExecContext) updatedHostname() {
 	}
 	ctx.nameAnsi = ctx.logger.Colorify(fmt.Sprintf("@(host:%s)", hostname))
 	ctx.logger.SetPrefix(fmt.Sprintf("@(dim)[%s] ", ctx.nameAnsi))
+}
+
+func (ctx *ExecContext) SetPort(p int) {
+	ctx.lock()
+	defer ctx.unlock()
+	ctx.close()
+	ctx.port = p
 }
 
 func (ctx *ExecContext) SshAddress() string {
