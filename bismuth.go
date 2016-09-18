@@ -17,7 +17,6 @@ import (
 	"github.com/tillberg/ansi-log"
 
 	"golang.org/x/crypto/ssh"
-	"golang.org/x/crypto/ssh/agent"
 )
 
 const maxSessionsPerContext = 5
@@ -27,6 +26,7 @@ type ExecContext struct {
 	mutex    sync.Mutex
 	username string
 	hostname string
+    keyfile  string
 	port     int
 
 	sshClient      *ssh.Client
@@ -113,24 +113,32 @@ func (ctx *ExecContext) close() {
 	ctx.isConnected = false
 }
 
+func PublicKeyFile(file string) ssh.AuthMethod {
+	buffer, err := ioutil.ReadFile(file)
+	if err != nil {
+		return nil
+	}
+
+	key, err := ssh.ParsePrivateKey(buffer)
+	if err != nil {
+		return nil
+	}
+	return ssh.PublicKeys(key)
+}
+
+
 func (ctx *ExecContext) reconnect() (err error) {
 	if ctx.hostname != "" {
 		ctx.isReconnecting = true
 		username := ctx.username
 		addr := fmt.Sprintf("%s:%d", ctx.hostname, ctx.port)
 		ctx.unlock()
-		agentConn, err := net.Dial("unix", os.Getenv("SSH_AUTH_SOCK"))
-		if err != nil {
-			ctx.lock()
-			ctx.isReconnecting = false
-			return err
-		}
-		defer agentConn.Close()
-		ag := agent.NewClient(agentConn)
-		auths := []ssh.AuthMethod{ssh.PublicKeysCallback(ag.Signers)}
-		config := &ssh.ClientConfig{
+
+        config := &ssh.ClientConfig{
 			User: username,
-			Auth: auths,
+			Auth: []ssh.AuthMethod{
+                PublicKeyFile(keyfile)	
+                },
 		}
 		conn, err := net.DialTimeout("tcp", addr, networkTimeout)
 		if err != nil {
@@ -417,6 +425,13 @@ func (ctx *ExecContext) SetHostname(s string) {
 	ctx.close()
 	ctx.hostname = s
 	ctx.updatedHostname()
+}
+
+func (ctx *ExecContext) SetKeyFile(s string) {
+	ctx.lock()
+	defer ctx.unlock()
+	ctx.close()
+	ctx.keyfile = s
 }
 
 func (ctx *ExecContext) updatedHostname() {
