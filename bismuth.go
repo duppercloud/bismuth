@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+        "io/ioutil"
 	"net"
 	"os"
 	"path"
@@ -26,7 +27,7 @@ type ExecContext struct {
 	mutex    sync.Mutex
 	username string
 	hostname string
-    keyfile  string
+        keyfile  string
 	port     int
 
 	sshClient      *ssh.Client
@@ -137,8 +138,8 @@ func (ctx *ExecContext) reconnect() (err error) {
         config := &ssh.ClientConfig{
 			User: username,
 			Auth: []ssh.AuthMethod{
-                PublicKeyFile(keyfile)	
-                },
+                	  PublicKeyFile(ctx.keyfile),	
+                	},
 		}
 		conn, err := net.DialTimeout("tcp", addr, networkTimeout)
 		if err != nil {
