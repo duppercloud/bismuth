@@ -410,7 +410,11 @@ func (ctx *ExecContext) Username() string {
 func (ctx *ExecContext) Hostname() string {
 	ctx.lock()
 	defer ctx.unlock()
-	return ctx.hostname
+    hostname := ctx.hostname
+    if hostname == "" {
+        hostname = "localhost"
+    }
+	return hostname
 }
 
 func (ctx *ExecContext) SetUsername(s string) {
@@ -1221,7 +1225,7 @@ func (ctx *ExecContext) Uname() string {
 }
 
 func (ctx *ExecContext) IsLocal() bool {
-	return ctx.Hostname() == ""
+	return ctx.Hostname() == "localhost" 
 }
 
 func (ctx *ExecContext) IsWindows() bool {
